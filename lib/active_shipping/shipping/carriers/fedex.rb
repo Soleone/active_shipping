@@ -22,7 +22,7 @@ module ActiveMerchant
         "fedex_express" => "FDXE"
       }
       
-      ServiceTypes = {
+      ServiceTypesForCode = {
         "PRIORITY_OVERNIGHT" => "FedEx Priority Overnight",
         "PRIORITY_OVERNIGHT_SATURDAY_DELIVERY" => "FedEx Priority Overnight Saturday Delivery",
         "FEDEX_2_DAY" => "FedEx 2 Day",
@@ -85,8 +85,9 @@ module ActiveMerchant
         'express_mps_master' => 'EXPRESS_MPS_MASTER'
       }
 
-      def self.service_type_for(service_type)
-        ServiceTypes[service_type] || service_type.downcase.split('_').collect{|word| word.capitalize.sub('Fedex', 'FedEx') }.join(' ')
+      def self.service_name_for_type(service_type)
+        puts "==> Found service type: #{service_type}"
+        ServiceTypesForCode[service_type] || service_type.downcase.split('_').collect{|word| word.capitalize.sub('Fedex', 'FedEx') }.join(' ')
       end
       
       def requirements
@@ -224,18 +225,21 @@ module ActiveMerchant
         success, message = nil
         
         xml = REXML::Document.new(response)
+        puts "=> Got the following response from Fedex: #{response}"
         root_node = xml.elements['RateReply']
         
         success = response_success?(xml)
         message = response_message(xml)
         
         root_node.elements.each('RateReplyDetails') do |rated_shipment|
+          puts "=> Details: #{rated_shipment.inspect}"
           service_code = rated_shipment.get_text('ServiceType').to_s
           is_saturday_delivery = rated_shipment.get_text('AppliedOptions').to_s == 'SATURDAY_DELIVERY'
+          puts "=> is_saturday_delivery: #{is_saturday_delivery} (#{rated_shipment.get_text('AppliedOptions')})"
           service_type = is_saturday_delivery ? "#{service_code}_SATURDAY_DELIVERY" : service_code
-          
+          puts "=> service_type: #{service_type}"
           rate_estimates << RateEstimate.new(origin, destination, @@name,
-                              self.class.service_type_for(service_type),
+                              self.class.service_name_for_type(service_type),
                               :service_code => service_code,
                               :total_price => rated_shipment.get_text('RatedShipmentDetails/ShipmentRateDetail/TotalNetCharge/Amount').to_s.to_f,
                               :currency => rated_shipment.get_text('RatedShipmentDetails/ShipmentRateDetail/TotalNetCharge/Currency').to_s,
