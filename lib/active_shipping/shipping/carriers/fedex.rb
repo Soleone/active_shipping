@@ -256,6 +256,7 @@ module ActiveMerchant
       end
       
       def parse_tracking_response(response, options)
+        logger.info("Received Response:\n#{response.inspect}") if logger
         xml = REXML::Document.new(response)
         root_node = xml.elements['TrackReply']
         
