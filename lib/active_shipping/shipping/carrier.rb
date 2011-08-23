@@ -30,8 +30,8 @@ module ActiveMerchant
       # Validate credentials with a call to the API. By default this just does a find_rates call
       # with the orgin and destination both as the carrier's default_location. Override to provide
       # alternate functionality, such as checking for test_mode to use test servers, etc.
-      def valid_credentials?
-        location = self.class.default_location
+      def valid_credentials?(location = nil)
+        location ||= self.class.default_location
         find_rates(location,location,Package.new(100, [5,15,30]), :test => test_mode)
       rescue ActiveMerchant::Shipping::ResponseError
         false
